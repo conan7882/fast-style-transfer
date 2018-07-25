@@ -62,16 +62,16 @@ Similar results of Neural Style can be found [here](https://github.com/conan7882
 <img src ="figs/wuhou_512.JPG" height="150px" />
 </p>
 <p align = 'center'>
-<a href = 'figs/oil.jpg'><img src ="figs/oil_s.png" height="300px" /></a>
-<img src ="figs/wuhou_oil.png" height="300px" /><img src ="figs/wuhou_oil_s.png" height="300px" />
-<a href = 'figs/wave.jpg'><img src ="figs/chong_s.png" height="300px" /></a>
-<img src ="figs/wuhou_wave.png" height="300px" /><img src ="figs/wuhou_wave_s.png" height="300px" />
-<a href = 'figs/la_muse.jpg'><img src ="figs/la_s.png" height="300px" /></a>
-<img src ="figs/wuhou_la_muse.png" height="300px" /><img src ="figs/wuhou_la_muse_s.png" height="300px" />
-<a href = 'figs/the_scream.jpg'><img src ="figs/scream_s.png" height="300px" /></a>
-<img src ="figs/wuhou_the_scream.png" height="300px" /><img src ="figs/wuhou_the_scream_s.png" height="300px" />
-<a href = 'figs/rain_princess.jpg'><img src ="figs/rain_princess_s.jpg" height="300px" /></a>
-<img src ="figs/wuhou_rain_princess.png" height="300px" /><img src ="figs/wuhou_rain_princess_s.png" height="300px" />
+<a href = 'figs/oil.jpg'><img src ="figs/oil_s.png" height="270px" /></a>
+<img src ="figs/wuhou_oil.png" height="270px" /><img src ="figs/wuhou_oil_s.png" height="270px" />
+<a href = 'figs/wave.jpg'><img src ="figs/chong_s.png" height="265px" /></a>
+<img src ="figs/wuhou_wave.png" height="265px" /><img src ="figs/wuhou_wave_s.png" height="265px" />
+<a href = 'figs/la_muse.jpg'><img src ="figs/la_s.png" height="265px" /></a>
+<img src ="figs/wuhou_la_muse.png" height="265px" /><img src ="figs/wuhou_la_muse_s.png" height="265px" />
+<a href = 'figs/the_scream.jpg'><img src ="figs/scream_s.png" height="270px" /></a>
+<img src ="figs/wuhou_the_scream.png" height="270px" /><img src ="figs/wuhou_the_scream_s.png" height="270px" />
+<a href = 'figs/rain_princess.jpg'><img src ="figs/rain_princess_s.jpg" height="270px" /></a>
+<img src ="figs/wuhou_rain_princess.png" height="270px" /><img src ="figs/wuhou_rain_princess_s.png" height="270px" />
 </p>
 
 ## Preparation

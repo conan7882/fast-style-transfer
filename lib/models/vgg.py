@@ -8,53 +8,10 @@ import tensorflow as tf
 
 from tensorcv.models.layers import *
 from tensorcv.models.base import BaseModel
-
 import lib.models.layers as L
 
 
 VGG_MEAN = [103.939, 116.779, 123.68]
-
-
-def resize_tensor_image_with_smallest_side(image, small_size):
-    """
-    Resize image tensor with smallest side = small_size and
-    keep the original aspect ratio.
-
-    Args:
-        image (tf.tensor): 4-D Tensor of shape
-            [batch, height, width, channels]
-            or 3-D Tensor of shape [height, width, channels].
-        small_size (int): A 1-D int. The smallest side of resize image.
-
-    Returns:
-        Image tensor with the original aspect ratio and
-        smallest side = small_size.
-        If images was 4-D, a 4-D float Tensor of shape
-        [batch, new_height, new_width, channels].
-        If images was 3-D, a 3-D float Tensor of shape
-        [new_height, new_width, channels].
-    """
-    im_shape = tf.shape(image)
-    shape_dim = image.get_shape()
-    if len(shape_dim) <= 3:
-        height = tf.cast(im_shape[0], tf.float32)
-        width = tf.cast(im_shape[1], tf.float32)
-    else:
-        height = tf.cast(im_shape[1], tf.float32)
-        width = tf.cast(im_shape[2], tf.float32)
-
-    height_smaller_than_width = tf.less_equal(height, width)
-
-    new_shorter_edge = tf.constant(small_size, tf.float32)
-    new_height, new_width = tf.cond(
-        height_smaller_than_width,
-        lambda: (new_shorter_edge, (width / height) * new_shorter_edge),
-        lambda: ((height / width) * new_shorter_edge, new_shorter_edge))
-
-    return tf.image.resize_images(
-        tf.cast(image, tf.float32),
-        [tf.cast(new_height, tf.int32), tf.cast(new_width, tf.int32)])
-
 
 class BaseVGG16(BaseModel):
     def __init__(self):
@@ -140,7 +97,6 @@ class BaseVGG19(BaseVGG16):
 
         def conv_layer(filter_size, out_dim, name):
             init_w = tf.keras.initializers.he_normal()
-            # init_w = None
             layer_dict[name] = conv(self.cur_input, filter_size, out_dim, name, init_w=init_w)
             self.receptive_s = self.receptive_s + (filter_size - 1) * self.stride_t
             self.receptive_size[name] = self.receptive_s

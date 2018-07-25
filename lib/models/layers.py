@@ -7,10 +7,6 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.contrib.framework import add_arg_scope
 
-import tensorcv.models.layers as layers
-
-INIT_W_STD = 0.1
-
 @add_arg_scope
 def conv(filter_size,
          stride,
@@ -26,9 +22,9 @@ def conv(filter_size,
          is_training=None,
          name='conv'):
     inputs = layer_dict['cur_input']
-    stride = layers.get_shape4D(stride)
+    stride = get_shape4D(stride)
     in_dim = inputs.get_shape().as_list()[-1]
-    filter_shape = layers.get_shape2D(filter_size) + [in_dim, out_dim]
+    filter_shape = get_shape2D(filter_size) + [in_dim, out_dim]
 
     if padding == 'SAME' and pad_type == 'REFLECT':
         pad_size_1 = int((filter_shape[0] - 1) / 2)
@@ -95,7 +91,7 @@ def transpose_conv(
                    is_training=None,
                    name='dconv'):
     inputs = layer_dict['cur_input']
-    stride = layers.get_shape4D(stride)
+    stride = get_shape4D(stride)
     in_dim = inputs.get_shape().as_list()[-1]
 
     # TODO other ways to determine the output shape 
@@ -107,7 +103,7 @@ def transpose_conv(
                               tf.multiply(x_shape[2], stride[2]),
                               out_dim])        
 
-    filter_shape = layers.get_shape2D(filter_size) + [out_dim, in_dim]
+    filter_shape = get_shape2D(filter_size) + [out_dim, in_dim]
 
     with tf.variable_scope(name) as scope:
         weights = tf.get_variable('weights',
@@ -140,7 +136,6 @@ def transpose_conv(
                 variables_collections=None,
                 outputs_collections=None,
                 trainable=True,
-                # data_format=DATA_FORMAT_NHWC,
                 scope='bn'
             )
 
@@ -148,10 +143,8 @@ def transpose_conv(
         layer_dict['cur_input'] = nl(outputs)
         return layer_dict['cur_input']
 
-
-
 @add_arg_scope
-def residual_block(out_dim, layer_dict, name, is_training):
+def residual_block(out_dim, layer_dict, name, is_training, init_w=None):
     def conv_layer(name, relu=False):
         if relu == True:
             nl = tf.nn.relu
@@ -165,7 +158,7 @@ def residual_block(out_dim, layer_dict, name, is_training):
             layer_dict=layer_dict,
             bn=True,
             nl=nl,
-            init_w=tf.random_normal_initializer(stddev=INIT_W_STD),
+            init_w=init_w,
             init_b=tf.zeros_initializer(),
             padding='SAME',
             pad_type='REFLECT',
@@ -182,43 +175,43 @@ def residual_block(out_dim, layer_dict, name, is_training):
         return layer_dict['cur_input']
 
 
-@add_arg_scope
-def deconv_bn_drop_relu(filter_size,
-                        out_dim,
-                        stride,
-                        keep_prob,
-                        layer_dict,
-                        name,
-                        is_training,
-                        fusion_id=None,
-                        bn=True):
-    with tf.variable_scope(name):
-        inputs = layer_dict['cur_input']
-        deconv_out = transpose_conv(
-            inputs,
-            filter_size=filter_size,
-            out_dim=out_dim,
-            stride=stride,
-            padding='SAME',
-            name='dconv')
-        if bn == True:
-            # bn_deconv_out = _instance_norm(deconv_out, train=is_training, name='bn')
-            bn_deconv_out = layers.batch_norm(deconv_out, train=is_training, name='bn')
-        else:
-            bn_deconv_out = deconv_out
-        drop_out_bn = layers.dropout(
-            bn_deconv_out, keep_prob, is_training=is_training, name='dropout')
+# @add_arg_scope
+# def deconv_bn_drop_relu(filter_size,
+#                         out_dim,
+#                         stride,
+#                         keep_prob,
+#                         layer_dict,
+#                         name,
+#                         is_training,
+#                         fusion_id=None,
+#                         bn=True):
+#     with tf.variable_scope(name):
+#         inputs = layer_dict['cur_input']
+#         deconv_out = transpose_conv(
+#             inputs,
+#             filter_size=filter_size,
+#             out_dim=out_dim,
+#             stride=stride,
+#             padding='SAME',
+#             name='dconv')
+#         if bn == True:
+#             # bn_deconv_out = _instance_norm(deconv_out, train=is_training, name='bn')
+#             bn_deconv_out = layers.batch_norm(deconv_out, train=is_training, name='bn')
+#         else:
+#             bn_deconv_out = deconv_out
+#         drop_out_bn = dropout(
+#             bn_deconv_out, keep_prob, is_training=is_training, name='dropout')
 
-        if fusion_id is not None:
-            layer_dict['cur_input'] = tf.concat(
-              (drop_out_bn, layer_dict['encoder_{}'.format(fusion_id)]),
-              axis=-1)
-        else:
-            layer_dict['cur_input'] = drop_out_bn
+#         if fusion_id is not None:
+#             layer_dict['cur_input'] = tf.concat(
+#               (drop_out_bn, layer_dict['encoder_{}'.format(fusion_id)]),
+#               axis=-1)
+#         else:
+#             layer_dict['cur_input'] = drop_out_bn
 
-        layer_dict['cur_input'] = tf.nn.relu(layer_dict['cur_input'])
+#         layer_dict['cur_input'] = tf.nn.relu(layer_dict['cur_input'])
 
-        return layer_dict['cur_input']
+#         return layer_dict['cur_input']
 
 
 def max_pool(x,
@@ -229,12 +222,14 @@ def max_pool(x,
              switch=False):
     """ 
     Max pooling layer 
+
     Args:
         x (tf.tensor): a tensor 
         name (str): name scope of the layer
         filter_size (int or list with length 2): size of filter
         stride (int or list with length 2): Default to be the same as shape
         padding (str): 'VALID' or 'SAME'. Use 'SAME' for FCN.
+
     Returns:
         tf.tensor with name 'name'
     """
@@ -261,4 +256,68 @@ def max_pool(x,
             strides=stride, 
             padding=padding,
             name=name), None
+
+def get_shape2D(in_val):
+    """
+    Return a 2D shape 
+
+    Args:
+        in_val (int or list with length 2)
+
+    Returns:
+        list with length 2
+    """
+    if isinstance(in_val, int):
+        return [in_val, in_val]
+    if isinstance(in_val, list):
+        assert len(in_val) == 2
+        return in_val
+    raise RuntimeError('Illegal shape: {}'.format(in_val))
+
+def get_shape4D(in_val):
+    """
+    Return a 4D shape
+
+    Args:
+        in_val (int or list with length 2)
+
+    Returns:
+        list with length 4
+    """
+    # if isinstance(in_val, int):
+    return [1] + get_shape2D(in_val) + [1]
+
+# def dropout(x, keep_prob, is_training, name='dropout'):
+#     """ 
+#     Dropout 
+
+#     Args:
+#         x (tf.tensor): a tensor 
+#         keep_prob (float): keep prbability of dropout
+#         is_training (bool): whether training or not
+#         name (str): name scope
+
+#     Returns:
+#         tf.tensor with name 'name'
+#     """
+
+#     return tf.layers.dropout(x, rate=1 - keep_prob, 
+#                             training=is_training, name=name)
+
+# def batch_norm(x, train=True, name='bn'):
+#     """ 
+#     batch normal 
+
+#     Args:
+#         x (tf.tensor): a tensor 
+#         name (str): name scope
+#         train (bool): whether training or not
+
+#     Returns:
+#         tf.tensor with name 'name'
+#     """
+#     return tf.contrib.layers.batch_norm(x, decay=0.9, 
+#                           updates_collections=None,
+#                           epsilon=1e-5, scale=False,
+#                           is_training=train, scope=name)
 

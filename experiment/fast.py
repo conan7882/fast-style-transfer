@@ -9,24 +9,20 @@ import platform
 import scipy.misc
 import numpy as np
 import tensorflow as tf
-# import matplotlib.pyplot as plt
 from tensorcv.dataflow.image import ImageFromFile
 
 import sys
 sys.path.append('../')
-
 from lib.models.faststyle import FastStyle
-# from lib.dataflow.facades import ImagePair
 
-
-if platform.node() == 'Qians-MacBook-Pro.local':
-    DATA_PATH = '/Users/gq/workspace/Dataset/CMP_facade_DB_base/'
-    SAVE_PATH = '/Users/gq/tmp/dlout/pix2pix/'
-    # RESULT_PATH = '/Users/gq/tmp/ram/center/result/'
-elif platform.node() == 'arostitan':
+if platform.node() == 'arostitan':
     DATA_PATH = '/home/qge2/workspace/data/dataset/COCO/train2014/'
     SAVE_PATH = '/home/qge2/workspace/data/out/fast/'
     VGG_PATH = '/home/qge2/workspace/data/pretrain/vgg/vgg16.npy'
+elif platform.node() == 'Qians-MacBook-Pro.local':
+    VGG_PATH = '/Users/gq/workspace/Dataset/pretrained/vgg16.npy'
+    SAVE_PATH = '/Users/gq/tmp/fast/'
+    # DATA_PATH = '/Users/gq/workspace/Dataset/BSR_bsds500/BSR/BSDS500/data/'
 else:
     VGG_PATH = 'E:/GITHUB/workspace/CNN/pretrained/vgg16.npy'
     DATA_PATH = 'E:/Dataset/COCO/val2017/val2017/'
@@ -88,37 +84,35 @@ def get_args():
     parser.add_argument('--lr', default=1e-3, type=float,
                         help='Learning rate')
 
-    parser.add_argument('--style', default=1e-3, type=float,
+    parser.add_argument('--style', default=10, type=float,
                         help='Style weight')
-    parser.add_argument('--content', default=100, type=float,
+    parser.add_argument('--content', default=15, type=float,
                         help='Content weight')
-    parser.add_argument('--tv', default=1e-6, type=float,
+    parser.add_argument('--tv', default=1e-4, type=float,
                         help='TV weight')
 
-    parser.add_argument('--sim', default='la_muse.jpg', type=str,
+    parser.add_argument('--styleim', default='la_muse.jpg', type=str,
                         help='Style image name')
-    
+    parser.add_argument('--loadstyle', default='oil', type=str,
+                        help='Load pretrained style transfer model')
+    parser.add_argument('--impath', default='../data/cat.png', type=str,
+                        help='test image path')
+    parser.add_argument('--savepath', default='../data/transfered.png', type=str,
+                        help='save image path')
+
     return parser.parse_args()
+
+# rain s 5 c 20 tv 1e-4
+
+# other s 5 c 15 tv 1e-4
 
 if __name__ == '__main__':
     FLAGS = get_args()
 
-    style_im = scipy.misc.imread('../data/{}'.format(FLAGS.sim))
-    style_im = [resize_image_with_smallest_side(style_im, 512)]
-    style_shape = [style_im[0].shape[0], style_im[0].shape[1]]
-
-    model = FastStyle(content_size=256,
-                      style_size=style_shape,
-                      c_channel=3,
-                      s_channel=3,
-                      vgg_path=VGG_PATH,
-                      s_weight=FLAGS.style,
-                      c_weight=FLAGS.content,
-                      tv_weight=FLAGS.tv)
-
     if FLAGS.train:
-        # style_im = [scipy.misc.imresize(scipy.misc.imread('../data/{}'.format(FLAGS.sim)),
-        #             [256, 256])]
+        style_im = scipy.misc.imread('../data/{}'.format(FLAGS.styleim))
+        style_im = [resize_image_with_smallest_side(style_im, 512)]
+        style_shape = [style_im[0].shape[0], style_im[0].shape[1]]
 
         train_data = ImageFromFile(
             ext_name='.jpg',
@@ -130,7 +124,16 @@ if __name__ == '__main__':
         train_data.setup(epoch_val=0, batch_size=FLAGS.batch)
 
         test_im = scipy.misc.imread('../data/cat.png')
-        test_im = [resize_image_with_smallest_side(test_im, 256)]
+        test_im = [test_im]
+
+        model = FastStyle(content_size=256,
+                          style_size=style_shape,
+                          c_channel=3,
+                          s_channel=3,
+                          vgg_path=VGG_PATH,
+                          s_weight=FLAGS.style,
+                          c_weight=FLAGS.content,
+                          tv_weight=FLAGS.tv)
 
         model.create_model()
         model.create_generate_model()
@@ -142,13 +145,9 @@ if __name__ == '__main__':
         loss_op = model.get_loss()
         gen_op = model.layers['gen_im']
 
-        # with tf.variable_scope(tf.get_variable_scope()) as scope:
-        #     scope.reuse_variables()
-        #     test_model.create_generate_model()
-        #     test_summary_op = test_model.get_summary()
-
         writer = tf.summary.FileWriter(SAVE_PATH)
-        # saver = tf.train.Saver()
+        saver = tf.train.Saver(
+            var_list=tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='style_net'))
         sessconfig = tf.ConfigProto()
         sessconfig.gpu_options.allow_growth = True
         with tf.Session(config=sessconfig) as sess:
@@ -169,21 +168,31 @@ if __name__ == '__main__':
                     writer.add_summary(summary, i)
                     model.set_is_training(True)
                     summary = sess.run(
-                    test_summary_op,
-                    feed_dict={
-                               model.test_image: test_im})
+                        test_summary_op,
+                        feed_dict={model.test_image: test_im})
                     writer.add_summary(summary, i)
-                print('step: {}, loss: {}'.format(i, loss))
+                print('step: {}, loss: {:0.2f}'.format(i, loss))
 
+            style_name = os.path.splitext(FLAGS.styleim)[0]
+            saver.save(sess, '{}{}'.format(SAVE_PATH, style_name))
         writer.close()
 
     if FLAGS.test:
+        model = FastStyle(c_channel=3)
         model.create_generate_model()
-        gen_op = model.layers['gen_im']
-        summary_op = model.get_summary()
+        gen_op = model.layers['test_gen_im']
 
+        test_im = [scipy.misc.imread(FLAGS.impath)]
+        saver = tf.train.Saver(
+            var_list=tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='style_net'))
         sessconfig = tf.ConfigProto()
         sessconfig.gpu_options.allow_growth = True
         with tf.Session(config=sessconfig) as sess:
             sess.run(tf.global_variables_initializer())
-            
+            # saver.restore(sess, '{}step_{}-{}'.format(SAVE_PATH, 1, 1))
+            saver.restore(sess, '{}{}'.format(SAVE_PATH, FLAGS.loadstyle))
+            transfered = sess.run(
+                gen_op,
+                feed_dict={model.test_image: test_im})
+
+            scipy.misc.imsave(FLAGS.savepath, transfered[0])

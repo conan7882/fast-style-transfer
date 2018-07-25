@@ -5,7 +5,6 @@
 
 import numpy as np
 import tensorflow as tf
-import tensorcv.models.layers as layers
 from tensorcv.models.base import BaseModel
 
 import lib.models.layers as L
@@ -17,18 +16,24 @@ INIT_W = tf.random_normal_initializer(stddev=INIT_W_STD)
 
 class FastStyle(BaseVGG19):
     def __init__(self,
-                 content_size,
-                 style_size,
-                 c_channel,
-                 s_channel,
+                 content_size=None,
+                 style_size=None,
+                 c_channel=None,
+                 s_channel=None,
                  vgg_path=None,
                  s_weight=1e-3,
                  c_weight=100,
                  tv_weight=1e-6):
         self._switch = False
 
-        self._c_size = layers.get_shape2D(content_size)
-        self._s_size = layers.get_shape2D(style_size)
+        if content_size == None:
+            self._c_size = [None, None]
+        else:
+            self._c_size = L.get_shape2D(content_size)
+        if style_size == None:
+            self._s_size = [None, None]
+        else:
+            self._s_size = L.get_shape2D(style_size)
         self._n_c_c = c_channel
         self._n_s_c = s_channel
         self._vgg_path = vgg_path
@@ -37,11 +42,11 @@ class FastStyle(BaseVGG19):
         self._c_w = c_weight
         self._tv_w = tv_weight
 
-        self.content_layers = ['conv3_3']
-        self.style_layers = ['conv1_2', 'conv2_2', 'conv3_3', 'conv4_3']
+        # self.content_layers = ['conv3_3']
+        # self.style_layers = ['conv1_2', 'conv2_2', 'conv3_3', 'conv4_3']
 
-        # self.content_layers = ['conv4_2']
-        # self.style_layers = ['conv1_1', 'conv2_1', 'conv3_1', 'conv4_1', 'conv5_1']
+        self.content_layers = ['conv4_2']
+        self.style_layers = ['conv1_1', 'conv2_1', 'conv3_1', 'conv4_1', 'conv5_1']
 
         self.layers = {}
 
@@ -58,7 +63,6 @@ class FastStyle(BaseVGG19):
 
     def create_model(self):
         self.set_is_training(True)
-
         self._create_input()
 
         self.vgg_layer = {}
@@ -94,9 +98,7 @@ class FastStyle(BaseVGG19):
         self.set_is_training(False)
         self._create_generate_input()
 
-        with tf.variable_scope(tf.get_variable_scope()) as scope:
-            scope.reuse_variables()
-            self.layers['test_gen_im'] = self._create_style_transfer_net(self.test_image)
+        self.layers['test_gen_im'] = self._create_style_transfer_net(self.test_image)
 
     def _create_generate_input(self):
         self.test_image = tf.placeholder(
@@ -105,7 +107,7 @@ class FastStyle(BaseVGG19):
             shape=[None, None, None, self._n_c_c])
 
     def _create_style_transfer_net(self, inputs):
-        with tf.variable_scope('style_net') as scope:
+        with tf.variable_scope('style_net', reuse=tf.AUTO_REUSE) as scope:
             self.layers['cur_input'] = inputs
             arg_scope = tf.contrib.framework.arg_scope
             with arg_scope([L.conv],
@@ -116,21 +118,14 @@ class FastStyle(BaseVGG19):
                            init_w=INIT_W,
                            pad_type='REFLECT',
                            ):
-                # L.conv_bn_relu(
-                #     filter_size=9, out_dim=32, stride=1, name='conv1')
-                # L.conv_bn_relu(
-                #     filter_size=3, out_dim=64, stride=2, name='conv2')
-                # L.conv_bn_relu(
-                #     filter_size=3, out_dim=128, stride=2, name='conv3')
-
                 L.conv(filter_size=9, stride=1, out_dim=32, name='conv1')
                 L.conv(filter_size=3, stride=2, out_dim=64, name='conv2')
                 L.conv(filter_size=3, stride=2, out_dim=128, name='conv3')
 
             with arg_scope([L.residual_block],
-                           # nl=tf.nn.relu,
                            layer_dict=self.layers,
-                           is_training=self.is_training):
+                           is_training=self.is_training,
+                           init_w=INIT_W):
                 L.residual_block(128, name='res1')
                 L.residual_block(128, name='res2')
                 L.residual_block(128, name='res3')
@@ -142,9 +137,6 @@ class FastStyle(BaseVGG19):
                            layer_dict=self.layers,
                            bn=True,
                            init_w=INIT_W):
-                # L.deconv_bn_drop_relu(filter_size=3, out_dim=64, name='deconv1')
-                # L.deconv_bn_drop_relu(filter_size=3, out_dim=32, name='deconv2')
-
                 L.transpose_conv(filter_size=3, out_dim=64, name='deconv1')
                 L.transpose_conv(filter_size=3, out_dim=32, name='deconv2')
 
@@ -166,9 +158,6 @@ class FastStyle(BaseVGG19):
             
             return self.layers['cur_input']
 
-    # def _reflection_padding(self, net):
-    #     return tf.pad(net,[[0, 0],[40, 40],[40, 40], [0, 0]], "REFLECT")
-
     def _comp_content_feat(self, name):
         with tf.name_scope('content_feat_{}'.format(name)):
             c_feats = {}
@@ -186,7 +175,6 @@ class FastStyle(BaseVGG19):
                 with tf.variable_scope('style_feat_label'):
                     for key in self.style_layers:
                         cur_gram_mat, _ = self._gram_matrix(key, 'G_{}'.format(key))
-                        # shape = cur_gram_mat.shape.as_list()
                         cur_gram_mat = tf.squeeze(cur_gram_mat, axis=0)
                         cur_gram_mat = tf.expand_dims(cur_gram_mat, axis=0)
                         s_feats[key] = tf.get_variable(
@@ -225,12 +213,6 @@ class FastStyle(BaseVGG19):
             return self.loss
 
     def _get_loss(self):
-        # def _mse_dict_loss(dict_1, dict_2):
-        #     loss_sum = []
-        #     for key_1, key_2 in zip(dict_1, dict_2):
-        #         loss_sum.append(tf.reduce_mean(tf.pow((dict_1[key_1] - dict_2[key_2]), 2)))
-        #     return tf.reduce_mean(loss_sum)
-
         with tf.name_scope('loss'):
             shape = self.content_image.get_shape()
             b_size = shape[-1].value
@@ -241,8 +223,7 @@ class FastStyle(BaseVGG19):
                 for key in self.style_layers:
                     N = dict_2['{}_N'.format(key)]
                     style_loss += 2. * tf.nn.l2_loss(dict_1[key] - dict_2[key]) / (b_size * N ** 2)
-                # style_loss = tf.reduce_sum(style_loss)
-                # style_loss = _mse_dict_loss(self.s_feats_label, self.s_feats_gen)
+
             with tf.name_scope('content'):
                 content_loss = 0
                 dict_1 = self.c_feats_label
@@ -250,10 +231,8 @@ class FastStyle(BaseVGG19):
                 for key in self.content_layers:
                     CHW = dict_2['{}_CHW'.format(key)]
                     content_loss += 2. * tf.nn.l2_loss(dict_1[key] - dict_2[key]) / (b_size * CHW)
-                # content_loss = _mse_dict_loss(self.c_feats_label, self.c_feats_gen)
             with tf.name_scope('total_variation'):
                 tv_loss = 2. * self._total_variation(self.layers['gen_im']) / b_size
-
             return self._s_w * style_loss + self._c_w * content_loss + self._tv_w * tv_loss
 
     def _total_variation(self, image):
@@ -277,5 +256,3 @@ class FastStyle(BaseVGG19):
             'test_gen_im', tf.cast(test_g, tf.uint8),
             collections=['test'])
         return tf.summary.merge_all(key='test')
-        
-        

@@ -6,7 +6,7 @@
 - After training, a style transfered image can be computed through the feed-forward image transform net.
 - The network overview from the paper:
 ![net](figs/net.png)
-- My implementation of [Neural Style](https://arxiv.org/abs/1508.06576) can be found [here](https://github.com/conan7882/art_style_transfer_TensorFlow/tree/master/nerual_style).
+- My implementation of [Neural Style](https://arxiv.org/abs/1508.06576) can be found [here](https://github.com/conan7882/neural-style-tf).
 
 ## Requirements
 - Python 3.3+

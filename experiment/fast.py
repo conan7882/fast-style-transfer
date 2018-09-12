@@ -15,18 +15,9 @@ import sys
 sys.path.append('../')
 from lib.models.faststyle import FastStyle
 
-if platform.node() == 'arostitan':
-    DATA_PATH = '/home/qge2/workspace/data/dataset/COCO/train2014/'
-    SAVE_PATH = '/home/qge2/workspace/data/out/fast/'
-    VGG_PATH = '/home/qge2/workspace/data/pretrain/vgg/vgg16.npy'
-elif platform.node() == 'Qians-MacBook-Pro.local':
-    VGG_PATH = '/Users/gq/workspace/Dataset/pretrained/vgg16.npy'
-    SAVE_PATH = '/Users/gq/tmp/fast/'
-    # DATA_PATH = '/Users/gq/workspace/Dataset/BSR_bsds500/BSR/BSDS500/data/'
-else:
-    VGG_PATH = 'E:/GITHUB/workspace/CNN/pretrained/vgg16.npy'
-    DATA_PATH = 'E:/Dataset/COCO/val2017/val2017/'
-    SAVE_PATH = 'E:/GITHUB/workspace/CNN/fast/'
+DATA_PATH = '../data/dataset/COCO/train2014/'
+SAVE_PATH = '../data/out/fast/'
+VGG_PATH = '../data/pretrain/vgg/vgg16.npy'
 
 def resize_image_with_smallest_side(image, small_size):
     """

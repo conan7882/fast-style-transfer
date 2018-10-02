@@ -105,7 +105,7 @@ Put style image in `data/`. Then go to `experiment/`
 python3 fast.py --train --batch batch_size --lr learning_rate --styleim name_of_style_image
 ```	
 
-**Weights for content, style and total variation loss are set by `--content`, `--style` and `--tv`. **
+**Weights for content, style and total variation loss are set by `--content`, `--style` and `--tv`.**
 
 
 ## Reference Implementation

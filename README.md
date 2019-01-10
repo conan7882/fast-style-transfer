@@ -95,14 +95,20 @@ Similar results of Neural Style can be found [here](https://github.com/conan7882
 Go to `experiment/`
 
 ```
-python3 fast.py --test --impath path_of_test_image --loadstyle name_of_style(wave, oil ...) --savepath path_to_save_transformed_image
+python3 fast.py --test \
+   --impath TEST_IMAGE_PATH_AND_NAME \
+   --loadstyle STYLE_NAME(wave, oil ...) \
+   --savepath PATH_AND_NAME_FOR_SAVING
 ```	
 
 ## Train the model
 
 Put style image in `data/`. Then go to `experiment/`
 ```
-python3 fast.py --train --batch batch_size --lr learning_rate --styleim name_of_style_image
+python3 fast.py --train \
+   --batch BATCH_SIZE \
+   --lr LEARNING_RATE \
+   --styleim FILE_NAME_OF_STYPE_IMAGE \
 ```	
 
 **Weights for content, style and total variation loss are set by `--content`, `--style` and `--tv`.**

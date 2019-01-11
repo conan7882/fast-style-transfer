@@ -21,6 +21,13 @@
 - The model is trained using 40k iteration with learning rate 1e-3. Summaries including training and testing transformed images are written every 100 steps.
 
 ## Result
+### Video
+Click to go to YouTube to check the video.
+<div align = 'center'>
+     <a href = 'https://youtu.be/xUy6rcCm0b8'>
+        <img src = 'figs/combine.png' alt = 'Click to go to YouTube!' width = '820px' height = '235px'>
+     </a>
+</div>
 
 ### Test image of different styles
 Similar results of Neural Style can be found [here](https://github.com/conan7882/art_style_transfer_TensorFlow/blob/master/nerual_style/README.md#result).
@@ -92,14 +99,23 @@ Similar results of Neural Style can be found [here](https://github.com/conan7882
     
 ## Test the model
 
-Go to `experiment/`
+Go to `experiment/`, for image:
 
 ```
-python3 fast.py --test \
-   --impath TEST_IMAGE_PATH_AND_NAME \
+python3 fast.py --generate_image \
+   --input_path TEST_IMAGE_PATH_AND_NAME \
    --loadstyle STYLE_NAME(wave, oil ...) \
-   --savepath PATH_AND_NAME_FOR_SAVING
+   --save_path PATH_AND_NAME_FOR_SAVING
 ```	
+
+For video:
+
+```
+python3 fast.py --generate_video \
+   --input_path TEST_VIDEO_PATH_AND_NAME \
+   --loadstyle STYLE_NAME(wave, oil ...) \
+   --save_path PATH_AND_NAME_FOR_SAVING
+```
 
 ## Train the model
 

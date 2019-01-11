@@ -235,11 +235,11 @@ def max_pool(x,
     """
 
     padding = padding.upper()
-    filter_shape = layers.get_shape4D(filter_size)
+    filter_shape = get_shape4D(filter_size)
     if stride is None:
         stride = filter_shape
     else:
-        stride = layers.get_shape4D(stride)
+        stride = get_shape4D(stride)
 
     if switch == True:
         return tf.nn.max_pool_with_argmax(

@@ -3,6 +3,7 @@
 # File: faststyle.py
 # Author: Qian Ge <geqian1001@gmail.com>
 
+import scipy.misc
 import numpy as np
 import tensorflow as tf
 from tensorcv.models.base import BaseModel
@@ -10,11 +11,12 @@ from tensorcv.models.base import BaseModel
 import lib.models.layers as L
 from lib.models.vgg import BaseVGG19
 from lib.models.vgg import BaseVGG16
+import lib.utils.viz as viz
 
 INIT_W_STD = 0.1
 INIT_W = tf.random_normal_initializer(stddev=INIT_W_STD)
 
-class FastStyle(BaseVGG19):
+class FastStyle(BaseVGG16):
     def __init__(self,
                  content_size=None,
                  style_size=None,
@@ -24,6 +26,7 @@ class FastStyle(BaseVGG19):
                  s_weight=1e-3,
                  c_weight=100,
                  tv_weight=1e-6):
+
         self._switch = False
 
         if content_size == None:
@@ -42,15 +45,12 @@ class FastStyle(BaseVGG19):
         self._c_w = c_weight
         self._tv_w = tv_weight
 
-        # self.content_layers = ['conv3_3']
-        # self.style_layers = ['conv1_2', 'conv2_2', 'conv3_3', 'conv4_3']
-
         self.content_layers = ['conv4_2']
         self.style_layers = ['conv1_1', 'conv2_1', 'conv3_1', 'conv4_1', 'conv5_1']
 
         self.layers = {}
 
-    def _create_input(self):
+    def _create_train_input(self):
         self.lr = tf.placeholder(tf.float32, name='lr')
         self.content_image = tf.placeholder(
             tf.float32,
@@ -61,9 +61,9 @@ class FastStyle(BaseVGG19):
             name='style',
             shape=[None, self._s_size[0], self._s_size[1], self._n_s_c])
 
-    def create_model(self):
+    def create_train_model(self):
         self.set_is_training(True)
-        self._create_input()
+        self._create_train_input()
 
         self.vgg_layer = {}
         vgg_param = np.load(self._vgg_path, encoding='latin1').item()
@@ -94,11 +94,19 @@ class FastStyle(BaseVGG19):
         self.c_feats_gen = self._comp_content_feat('generate')
         self.s_feats_gen = self._comp_style_feat('generate')
 
+        self.train_op = self.train_op()
+        self.train_summary_op = self.get_train_summary()
+        self.loss_op = self.get_loss()
+
+        self.global_step = 0
+
     def create_generate_model(self):
         self.set_is_training(False)
         self._create_generate_input()
 
-        self.layers['test_gen_im'] = self._create_style_transfer_net(self.test_image)
+        self.layers['gen_im'] = self._create_style_transfer_net(self.test_image)
+        self.valid_summary_op = self.get_valid_summary()
+        self.global_step = 0
 
     def _create_generate_input(self):
         self.test_image = tf.placeholder(
@@ -233,6 +241,9 @@ class FastStyle(BaseVGG19):
                     content_loss += 2. * tf.nn.l2_loss(dict_1[key] - dict_2[key]) / (b_size * CHW)
             with tf.name_scope('total_variation'):
                 tv_loss = 2. * self._total_variation(self.layers['gen_im']) / b_size
+
+            self.style_loss = style_loss
+            self.content_loss = content_loss
             return self._s_w * style_loss + self._c_w * content_loss + self._tv_w * tv_loss
 
     def _total_variation(self, image):
@@ -241,18 +252,95 @@ class FastStyle(BaseVGG19):
         return tf.reduce_sum(var_x + var_y)
 
     def get_train_summary(self):
-        train_g = tf.clip_by_value(self.layers['gen_im'], 0, 255)
-        tf.summary.image(
-            'generate', tf.cast(train_g, tf.uint8),
-            collections=['train'])
-        tf.summary.image(
-            'input', tf.cast(self.content_image, tf.uint8),
-            collections=['train'])
-        return tf.summary.merge_all(key='train')
+        with tf.name_scope('train'):
+            train_g = tf.clip_by_value(self.layers['gen_im'], 0, 255)
+            tf.summary.image(
+                'generate', tf.cast(train_g, tf.uint8),
+                collections=['train'])
+            tf.summary.image(
+                'input', tf.cast(self.content_image, tf.uint8),
+                collections=['train'])
+            return tf.summary.merge_all(key='train')
 
-    def get_test_summary(self):
-        test_g = tf.clip_by_value(self.layers['test_gen_im'], 0, 255)
-        tf.summary.image(
-            'test_gen_im', tf.cast(test_g, tf.uint8),
-            collections=['test'])
-        return tf.summary.merge_all(key='test')
+    def get_valid_summary(self):
+        with tf.name_scope('valid'):
+            test_g = tf.clip_by_value(self.layers['gen_im'], 0, 255)
+            tf.summary.image(
+                'generate', tf.cast(test_g, tf.uint8),
+                collections=['valid'])
+            tf.summary.image(
+                'input', tf.cast(self.test_image, tf.uint8),
+                collections=['valid'])
+            return tf.summary.merge_all(key='valid')
+
+    def train(self, sess, train_data, num_iteration=100, summary_writer=None):
+        display_name = ['loss', 'style loss', 'content loss']
+        batch_data = train_data.next_batch_dict()
+
+        loss_sum = 0
+        style_loss_sum = 0
+        content_loss_sum = 0
+        step = 0
+        current_summary = None
+        for i in range(0, num_iteration):
+            self.global_step += 1
+            step += 1
+
+            batch_data = train_data.next_batch_dict()
+
+            _, loss, style_loss, content_loss = sess.run(
+                [self.train_op, self.loss_op, self.style_loss, self.content_loss],
+                feed_dict={self.lr: 1e-3,
+                           self.content_image: batch_data['im']})
+
+            loss_sum += loss
+            style_loss_sum += style_loss
+            content_loss_sum += content_loss
+
+        current_summary= sess.run(
+            self.train_summary_op,
+            feed_dict={self.content_image: batch_data['im']})
+
+        viz.display(
+            global_step=self.global_step,
+            step=step,
+            scaler_sum_list=[loss_sum, style_loss_sum, content_loss_sum],
+            name_list=display_name,
+            collection='train',
+            summary_val=current_summary,
+            summary_writer=summary_writer)
+
+    def generate(self, sess, test_im, summary_writer=None, save_name=None):
+        self.global_step += 1
+        if summary_writer is not None:
+            current_summary = sess.run(self.valid_summary_op, feed_dict={self.test_image: test_im})
+            summary_writer.add_summary(current_summary, self.global_step)
+
+        transfered = sess.run(self.layers['gen_im'], feed_dict={self.test_image: test_im})
+        if save_name is not None:
+            scipy.misc.imsave(save_name, transfered[0])
+            print('Result is saved in {}'.format(save_name))
+        return transfered
+
+
+        #         writer.add_summary(summary, i)
+        #         model.set_is_training(True)
+        #         summary = sess.run(
+        #                 test_summary_op,
+        #                 feed_dict={model.test_image: test_im})
+        #             writer.add_summary(summary, i)
+        #         print('step: {}, loss: {:0.2f}'.format(i, loss))
+        # _, loss, gen_im = sess.run(
+        #             [train_op, loss_op, train_summary_op, gen_op],
+        #             feed_dict={model.lr: 1e-3,
+        #                        model.content_image: batch_data['im']})
+
+        #     display(global_step,
+        #     step,
+        #     scaler_sum_list,
+        #     name_list,
+        #     collection,
+        #     summary_val=None,
+        #     summary_writer=None,
+        #     )
+

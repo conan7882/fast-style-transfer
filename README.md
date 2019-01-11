@@ -17,10 +17,17 @@
 - Content and style features are computed from VGG19 instead of VGG16. Content Layer is conv4_2 and style layers are conv1_1, conv2_1, conv3_1, conv4_1 and conv5_1.
 - During training, content images are rescaled to 256 * 256 and the shortest side of style image is rescaled to 512 to reduce the computation.
 - Test images can be arbitrary size since there is no fully connected layers. However, the scale of the style depends on the scale of test images.
-- For some styles, there are some frame-like artifacts on image borders. This maybe because of the improper padding method of image transform net. It gets better when changing zero padding to reflection padding, but the artifacts still cannot be removed totally.
+- For some styles, there are some frame-like artifacts on image borders. This maybe because of the improper padding method of image transform net. It gets better when changing zero padding to reflection padding, but the artifacts still cannot be entirely removed.
 - The model is trained using 40k iteration with learning rate 1e-3. Summaries including training and testing transformed images are written every 100 steps.
 
 ## Result
+### Video
+Click to go to YouTube to check the video.
+<div align = 'center'>
+     <a href = 'https://youtu.be/xUy6rcCm0b8'>
+        <img src = 'figs/combine.png' alt = 'Click to go to YouTube!' width = '820px' height = '235px'>
+     </a>
+</div>
 
 ### Test image of different styles
 Similar results of Neural Style can be found [here](https://github.com/conan7882/art_style_transfer_TensorFlow/blob/master/nerual_style/README.md#result).
@@ -92,14 +99,23 @@ Similar results of Neural Style can be found [here](https://github.com/conan7882
     
 ## Test the model
 
-Go to `experiment/`
+Go to `experiment/`, for image:
 
 ```
-python3 fast.py --test \
-   --impath TEST_IMAGE_PATH_AND_NAME \
+python3 fast.py --generate_image \
+   --input_path TEST_IMAGE_PATH_AND_NAME \
    --loadstyle STYLE_NAME(wave, oil ...) \
-   --savepath PATH_AND_NAME_FOR_SAVING
+   --save_path PATH_AND_NAME_FOR_SAVING
 ```	
+
+For video:
+
+```
+python3 fast.py --generate_video \
+   --input_path TEST_VIDEO_PATH_AND_NAME \
+   --loadstyle STYLE_NAME(wave, oil ...) \
+   --save_path PATH_AND_NAME_FOR_SAVING
+```
 
 ## Train the model
 

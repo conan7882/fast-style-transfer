@@ -17,7 +17,7 @@
 - Content and style features are computed from VGG19 instead of VGG16. Content Layer is conv4_2 and style layers are conv1_1, conv2_1, conv3_1, conv4_1 and conv5_1.
 - During training, content images are rescaled to 256 * 256 and the shortest side of style image is rescaled to 512 to reduce the computation.
 - Test images can be arbitrary size since there is no fully connected layers. However, the scale of the style depends on the scale of test images.
-- For some styles, there are some frame-like artifacts on image borders. This maybe because of the improper padding method of image transform net. It gets better when changing zero padding to reflection padding, but the artifacts still cannot be removed totally.
+- For some styles, there are some frame-like artifacts on image borders. This maybe because of the improper padding method of image transform net. It gets better when changing zero padding to reflection padding, but the artifacts still cannot be entirely removed.
 - The model is trained using 40k iteration with learning rate 1e-3. Summaries including training and testing transformed images are written every 100 steps.
 
 ## Result

@@ -16,7 +16,7 @@ import lib.utils.viz as viz
 INIT_W_STD = 0.1
 INIT_W = tf.random_normal_initializer(stddev=INIT_W_STD)
 
-class FastStyle(BaseVGG16):
+class FastStyle(BaseVGG19):
     def __init__(self,
                  content_size=None,
                  style_size=None,

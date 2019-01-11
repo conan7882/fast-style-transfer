@@ -17,20 +17,9 @@ sys.path.append('../')
 from lib.models.faststyle import FastStyle
 import lib.utils.image as imagetool
 
-# DATA_PATH = '../data/dataset/COCO/train2014/'
-# SAVE_PATH = '../data/out/fast_1/'
-# VGG_PATH = '../data/pretrain/vgg/vgg16.npy'
-
-if platform.node() == 'arostitan':
-    DATA_PATH = '/home/qge2/workspace/data/dataset/COCO/train2014/'
-    SAVE_PATH = '/home/qge2/workspace/data/out/fast/'
-    VGG_PATH = '/home/qge2/workspace/data/pretrain/vgg/vgg16.npy'
-else:
-    VGG_PATH = 'E:/GITHUB/workspace/CNN/pretrained/vgg16.npy'
-    DATA_PATH = 'E:/Dataset/COCO/val2017/val2017/'
-    SAVE_PATH = 'E:/GITHUB/workspace/CNN/fast/'
-
-
+DATA_PATH = '../data/dataset/COCO/train2014/'
+SAVE_PATH = '../data/out/fast/'
+VGG_PATH = '../data/pretrain/vgg/vgg19.npy'
 
 def get_args():
     parser = argparse.ArgumentParser()

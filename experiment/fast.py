@@ -162,43 +162,9 @@ def generate_video():
 
     writer.close()
 
-def test_2():
-    import imageio
-    reader = imageio.get_reader('../data/combine.mp4')
-    fps = reader.get_meta_data()['fps']
-
-    writer = imageio.get_writer('../data/combine.gif', fps=fps)
-    for i,im in enumerate(reader):
-        scipy.misc.imsave('../data/combine.png', im)
-        break
-        # if i % 2 == 0:
-        #     sys.stdout.write("\rframe {0}".format(i))
-        #     sys.stdout.flush()
-        #     writer.append_data(im)
-        # if i == 50:
-        #     break
-    print("\r\nFinalizing...")
-    writer.close()
-    print("Done.")
-
-    # vid_1 = imageio.get_reader('/Users/gq/workspace/GitHub/workspace/faststyle/c.m4v',  'ffmpeg')
-    # vid_2 = imageio.get_reader('/Users/gq/workspace/GitHub/workspace/faststyle/test_oil.mp4',  'ffmpeg')
-    # fps = vid_2.get_meta_data()['fps']
-    # writer = imageio.get_writer('/Users/gq/workspace/GitHub/workspace/faststyle/combine.mp4', fps=fps)
-    # for im_1, im_2 in zip(vid_1.iter_data(), vid_2.iter_data()):
-    #     # saver.restore(sess, '{}{}'.format(SAVE_PATH, FLAGS.loadstyle))
-    #     im_1 = scipy.misc.imresize(im_1, (368, 640))
-    #     print(im_1.shape)
-    #     print(im_2.shape)
-    #     im = np.concatenate((im_1, im_2), axis=1)
-    #     writer.append_data(im.astype(np.uint8))
-    # writer.close()
-
 
 if __name__ == '__main__':
     FLAGS = get_args()
-
-    test_2()
 
     if FLAGS.train:
         train()
